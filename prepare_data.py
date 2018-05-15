@@ -13,7 +13,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 
 #import math, datetime
 #from random import shuffle
-
+import nltk
 
 
 #MAIN_DIR = '/root/kaggle/restaurantAvis/cache/' #Alain
@@ -54,20 +54,18 @@ dev = pd.read_csv(DATASET_DIR + 'restaurant_dev.tsv', delimiter='\t', quoting=3)
 
 # Function to clean the text
 def clean_text(data):
-    data = data.replace('\\n',' ').replace('\\r',' ')
-    data = data.lower()
-    letters_only = re.sub("[^A-Za-z]"," ", data)
-    words = letters_only.split()
+    words = nltk.word_tokenize(data.replace('\\n',' ').replace('\\t',' ').replace('_',' ').lower())
     return " ".join(words)
 
 
-# We get the whole vocabulary and the most used words
-def save_list(filepath, a_list):
+
+# We save the whole vocabulary and the most used words
+def save_list(filepath, aList):
     with open(filepath, 'w') as f:
-        for item in a_list:
-            f.write("{}\n".format(item))
+        for l in aList:
+            f.write(l + '\\n')
 
-
+# We re-create the review field
 
 vectorizer = CountVectorizer(ngram_range=(1,1),stop_words=frozenset([]))
 vectorizer.fit(train["Review"])
@@ -128,6 +126,8 @@ print(pretrained_embs[:3,:])
 
 # clean up unused words
 mots_inutiles = [i for i in range(len(pretrained_vocab)) if pretrained_vocab[i] not in mots_utiles]
+mots_inutiles = [i for i in range(len(pretrained_vocab)) if pretrained_vocab[i] not in mots_utiles and len(pretrained_vocab[i]) > 1]
+
 print(len(mots_inutiles))
 
 

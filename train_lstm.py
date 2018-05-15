@@ -33,7 +33,8 @@ only_in_train = np.loadtxt(TO_TRAIN_VOCAB_CSV, delimiter=';',dtype ='str')
 pretrained_embs = np.loadtxt(EMBS_CSV, delimiter=';')
 
 vocab = np.concatenate((pretrained_vocab, only_in_train))
-
+#print(len(vocab))
+#print(vocab[39009])
 
 
 # Load the dataframes
@@ -42,12 +43,12 @@ y_train = pd.read_csv(Y_TRAIN_CSV,names=['i','v'])
 X_dev = pd.read_csv(X_DEV_CSV)
 y_dev = pd.read_csv(Y_DEV_CSV,names=['i','v'])
 
-regularizer_scale = 0.05
-dropout_keep_prob = 0.7
-learning_rate = 0.001
+regularizer_scale= 0.1
+dropout_keep_prob = 0.8
+learning_rate = 0.0001
 
 
-REVIEW_LENGTH = 333
+REVIEW_LENGTH = 389
 
 tf.reset_default_graph()
 regularizer = tf.contrib.layers.l2_regularizer(scale=regularizer_scale)
