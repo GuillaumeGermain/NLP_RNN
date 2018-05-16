@@ -166,7 +166,7 @@ def prepare_mini_batch(X,y,k):
     last = min((k + 1) * mini_batch_size, len(X))
     X_b = X[first : last]
     b_size = last - first;
-    reviews = X_b['Review'].str.split()
+    reviews = X_b['CleanReviewSized'].str.split()
     X_review = np.reshape(np.hstack(reviews),(b_size,REVIEW_LENGTH))
     y_b = y[first : last]
     y_b = np.asarray(y_b['v'].as_matrix(), dtype=np.float32)
