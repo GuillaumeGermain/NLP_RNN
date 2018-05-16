@@ -41,7 +41,7 @@ GLOVE_DIR = MAIN_DIR + 'tools/embedding/glove.6B/'
 
 # Load the data
 train = pd.read_csv(DATASET_DIR + 'restaurant_train.tsv', delimiter='\t', quoting=3)
-dev = pd.read_csv(DATASET_DIR + 'restaurant_dev.tsv', delimiter='\t', quoting=3)
+# dev = pd.read_csv(DATASET_DIR + 'restaurant_dev.tsv', delimiter='\t', quoting=3)
 # train = pd.read_csv(os.path.join(data_path, 'train.csv'), dtype=dtype, low_memory=True, encoding='utf-8')
 
 
@@ -54,8 +54,8 @@ dev = pd.read_csv(DATASET_DIR + 'restaurant_dev.tsv', delimiter='\t', quoting=3)
 
 # Function to clean the text
 def clean_text(data):
-    words = nltk.word_tokenize(data.replace('\\n',' ').replace('\\t',' ').replace('_',' ').lower())
-    return " ".join(words)
+    words = nltk.word_tokenize(data.lower().replace('\\n',' ').replace('\\t',' ').replace('_',' '))
+    return " ".join(words).replace('``','"').replace("n't","not")
 
 
 
@@ -64,19 +64,24 @@ def save_list(filepath, aList):
     with open(filepath, 'w') as f:
         for l in aList:
             f.write(l + '\\n')
+            
+#### Preprocess data
+def extract_features(df):
+    df['CleanReview'] = df.apply(lambda row: clean_text(str(row['Review'])), axis=1)
+
+extract_features(train)
 
 # We re-create the review field
 
 vectorizer = CountVectorizer(ngram_range=(1,1),stop_words=frozenset([]))
-vectorizer.fit(train["Review"])
+vectorizer.fit(train["CleanReview"])
 mots_utiles = set(vectorizer.vocabulary_)
-
 save_list(MOTS_UTILES, mots_utiles)
 print(len(mots_utiles))
 
 
 vectorizer = CountVectorizer(min_df=50, stop_words=frozenset([]))
-vectorizer.fit(train["Review"])
+vectorizer.fit(train["CleanReview"])
 mots_necessaires = set(vectorizer.vocabulary_)
 save_list(MOTS_NECESSAIRES, mots_necessaires)
 print(len(mots_necessaires))
@@ -84,18 +89,8 @@ print(len(mots_necessaires))
 del vectorizer
 
 
-#### Preprocess data
-def extract_features(df):
-    df['Review'] = df.apply(lambda row: clean_text(str(row['Review'])), axis=1)
-
-extract_features(train)
-extract_features(dev)
-train.head()
-
-
 # We estimate the optimal size for the RNN network
-train['review_len'] = train['Review'].apply(lambda x: len(x.split()))
-dev['review_len'] = dev['Review'].apply(lambda x: len(x.split()))
+train['review_len'] = train['CleanReview'].apply(lambda x: len(x.split()))
 print(max(train['review_len']))
 print(train['review_len'].mean())
 print(train['review_len'].quantile(q=0.90))
@@ -116,8 +111,8 @@ def load_pretrained_glove(dim):
 
 
 pretrained_vocab, pretrained_embs = load_pretrained_glove(50)
-#_, pretrained_embs_100 = load_pretrained_glove(100)
-#_, pretrained_embs_300 = load_pretrained_glove(300)
+_, pretrained_embs_100 = load_pretrained_glove(100)
+_, pretrained_embs_300 = load_pretrained_glove(300)
 print(pretrained_vocab[:10])
 print(pretrained_embs[:3,:])
 
@@ -125,9 +120,7 @@ print(pretrained_embs[:3,:])
 # Remove the useless words to process the dataset (test and train)
 
 # clean up unused words
-mots_inutiles = [i for i in range(len(pretrained_vocab)) if pretrained_vocab[i] not in mots_utiles]
 mots_inutiles = [i for i in range(len(pretrained_vocab)) if pretrained_vocab[i] not in mots_utiles and len(pretrained_vocab[i]) > 1]
-
 print(len(mots_inutiles))
 
 
@@ -152,15 +145,15 @@ print(len(only_in_train))
 print(len(vocab))
 
 
-REVIEW_LENGTH = 333
+REVIEW_LENGTH = 389
 def preprocess_text(data,length):
-        data = str(data).split()
+        data = [w if w in vocab else '<UNK>' for w in str(data2).split()]
         if len(data) < length :
             data = data +['<BLANK>' for i in range(length - len(data))]
         return ' '.join(data[:length])
 
 
-train['Review'] = train['Review'].apply(lambda x:preprocess_text(x,REVIEW_LENGTH))
+train['CleanReviewSized'] = train['CleanReview'].apply(lambda x:preprocess_text(x,REVIEW_LENGTH))
 
 
 train.head(3)
