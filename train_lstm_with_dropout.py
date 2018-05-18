@@ -38,9 +38,9 @@ y_train = pd.read_csv(Y_TRAIN_CSV,names=['i','v'])
 X_dev = pd.read_csv(X_DEV_CSV)
 y_dev = pd.read_csv(Y_DEV_CSV,names=['i','v'])
 
-regularizer_scale= 0.01
+regularizer_scale= 0.05
 dropout_keep_prob = 0.8
-learning_rate = 0.001
+learning_rate = 0.0005
 lstm_dropout_keep_prob = 0.8
 
 
@@ -79,11 +79,12 @@ def f2(net): return net
 
 def lstm_to_train(string_tensor, scope, phase):
     with tf.variable_scope(scope):
+        keep_prob = tf.cond(phase, lambda: tf.constant(lstm_dropout_keep_prob), lambda: tf.constant(1.0))
         string_tensor_num = vocab_lookup.lookup(string_tensor)
         string_tensor_embeded = tf.nn.embedding_lookup(embeddings, string_tensor_num)
-        lstm_cell = tf.contrib.rnn.BasicLSTMCell(EMB_DIM)
-        lstm_cell_drop = tf.contrib.rnn.DropoutWrapper(lstm_cell,input_keep_prob=lstm_dropout_keep_prob, output_keep_prob=lstm_dropout_keep_prob)
-        # lstm_cell_adapted = tf.cond(phase, lambda: , lambda: f2(net))
+        #lstm_cell = tf.contrib.rnn.BasicLSTMCell(EMB_DIM)
+        lstm_cell = tf.contrib.rnn.LSTMCell(EMB_DIM)
+        lstm_cell_drop = tf.contrib.rnn.DropoutWrapper(lstm_cell,input_keep_prob=keep_prob, output_keep_prob=keep_prob)
         word_list = tf.unstack(string_tensor_embeded, axis=1)
         outputs, _ = tf.nn.static_rnn(lstm_cell_drop, word_list, dtype=tf.float32)
         return outputs[-1]
@@ -191,7 +192,7 @@ with tf.Session() as sess:
         train_accuracy = train_accuracy / m
         print("Cost mean epoch %i: %f" % (epoch, epoch_cost))
         print("Train Accuracy:", train_accuracy )
-        if best_train_accuracy < train_accuracy:
+        if best_train_accuracy > train_accuracy:
             best_train_accuracy = train_accuracy
             saver.save(sess, BEST_TRAIN_ACCURACY_MODEL)
         if (epoch % 1 == 0):
@@ -204,7 +205,7 @@ with tf.Session() as sess:
                     phase:False})
                 dev_accuracy +=  b_acc[0] * y_b.shape[0]
             dev_accuracy = dev_accuracy / m_dev
-            if best_dev_accuracy < dev_accuracy:
+            if best_dev_accuracy > dev_accuracy:
                 best_dev_accuracy = dev_accuracy
                 saver.save(sess, BEST_DEV_ACCURACY_MODEL)
             print("Dev Accuracy:", dev_accuracy )
